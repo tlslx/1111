@@ -1,0 +1,461 @@
+<template>
+  <el-tabs v-model="activeName" :inline="true" @tab-click="handleTabs">
+    <el-tab-pane label="外贸司审批并公示安排结果" name="first">
+      <el-form :model="queryForm" :inline="true">
+        <el-form-item label="商协会">
+          <el-select v-model="queryForm.coceralId" clearable>
+            <el-option v-for="item in coceralOpts" :key="item.value" :value="item.value" :label="item.label"></el-option>
+          </el-select>
+        </el-form-item>
+        <!--
+        <el-form-item label="地区">
+          <el-select v-model="queryForm.dealClusterId" clearable>
+            <el-option v-for="item in dealClusterOpts" :key="item.value" :value="item.value" :label="item.label"></el-option>
+          </el-select>
+        </el-form-item>
+        -->
+        <el-form-item label="展区">
+          <el-select v-model="queryForm.exhibitionArea" clearable>
+            <el-option v-for="item in exhibitionAreaOpts" :key="item.value" :value="item.value" :label="item.label"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="届数">
+          <el-input placeholder="请输入" v-model="queryForm.exhibitionSession" clearable></el-input>
+        </el-form-item>
+        <el-form-item label="交易团">
+          <el-select v-model="queryForm.dealClusterId" clearable>
+            <el-option v-for="item in dealClusterOpts" :key="item.value" :value="item.value" :label="item.label"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="handleQuery('first')">查询</el-button>
+        </el-form-item>
+      </el-form>
+      <el-table :data="examineResultDataList" v-loading="loading" border>
+        <el-table-column label="届数" prop="exhibitionSession" align="center"></el-table-column>
+        <el-table-column label="地区" prop="coceralName" align="center"></el-table-column>
+        <el-table-column label="展区" prop="exhibitionAreaName" align="center"></el-table-column>
+        <el-table-column label="交易团" prop="dealClusterName" align="center"></el-table-column>
+        <el-table-column label="商协会" prop="coceralName" align="center"></el-table-column>
+        <el-table-column label="品牌企业名称" prop="companyName" align="center"></el-table-column>
+        <el-table-column label="品牌企业展位数" prop="scheduleBoothNumber" align="center">
+          <template slot-scope="scope">
+            <div v-if="scope.row.edit">
+              <el-form :model="getBoothNumber" ref="scheduleBoothNumber" :rules="rules">
+                <el-form-item class="item-Num" prop="scheduleBoothNumber">
+                  <el-input v-model="getBoothNumber.scheduleBoothNumber"></el-input>
+                </el-form-item>
+              </el-form>
+            </div>
+            <span v-else>{{ scope.row.scheduleBoothNumber }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" align="center">
+          <template slot-scope="scope">
+            <el-button type="text" @click="handleEdit(scope.$index, scope.row)">编辑</el-button>
+            <el-button type="text" @click="handleSave(scope.$index, 'scheduleBoothNumber', scope.row)" :disabled="!scope.row.edit">保存</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-row type="flex" justify="space-between" class="pagination-footer">
+        <span class="add_btn">
+          <el-button type="danger" size="medium" @click="openPublished">公示</el-button>
+          <el-button type="primary" size="medium">下载</el-button>
+        </span>
+        <el-pagination 
+          @current-change="handleCurrentChange"
+          :current-page="pageInfoData.currentPage"
+          :page-size="pageInfoData.pageSize"
+          layout="total, prev, pager, next, jumper"
+          :total="examineResultData.total">
+        </el-pagination>
+      </el-row>
+      <!-- 公示弹框 -->
+      <el-dialog title="公示" :visible.sync="isPublished" v-if="isPublished" width="30%">
+        <el-form :model="publishedForm" ref="publishedForm" :rules="publishRules">
+          <el-form-item label="发布至：" prop="publishWay">
+            <el-checkbox-group v-model="publishedForm.publishWay">
+              <el-checkbox v-for="(item, index) in publishedGoOpts" :key="index" :label="item" @change="handleChange((index + 1), publishWayArr)"></el-checkbox>
+            </el-checkbox-group>
+          </el-form-item>
+          <el-form-item label="附件：">
+            <el-button type="primary" size="medium">选取文件</el-button>
+          </el-form-item>
+        </el-form>
+        <div class="dialog-footer">
+          <el-button type="primary" size="medium" @click="submitPublish('publishedForm')">确认</el-button>
+          <el-button type="info" size="medium" @click="isPublished = false;">取消</el-button>
+        </div>
+      </el-dialog>
+    </el-tab-pane>
+    <el-tab-pane label="外贸司汇总并公示意见表" name="second">
+      <el-form :model="queryFormT" :inline="true">
+        <el-form-item label="商协会">
+          <el-select v-model="queryFormT.coceralId" clearable>
+            <el-option v-for="item in coceralOptsT" :key="item.value" :value="item.value" :label="item.label"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="交易团">
+          <el-select v-model="queryFormT.dealClusterId" clearable>
+            <el-option v-for="item in dealClusterOptsT" :key="item.value" :value="item.value" :label="item.label"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="申请展区">
+          <el-select v-model="queryFormT.exhibitionArea" clearable>
+            <el-option v-for="item in exhibitionAreaOptsT" :key="item.value" :value="item.value" :label="item.label"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="评审企业">
+          <el-select v-model="queryFormT.companyCode" clearable>
+            <el-option v-for="item in companyOptsT" :key="item.value" :value="item.value" :label="item.label"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="handleQuery('second')">查询</el-button>
+        </el-form-item>
+      </el-form>
+      <el-table :data="foreignSummaryData.records" v-loading="loading" border>
+        <el-table-column label="评审企业" prop="companyName" align="center"></el-table-column>
+        <el-table-column label="所属交易团" prop="dealClusterName" align="center"></el-table-column>
+        <el-table-column label="展区" prop="exhibitionAreaName" align="center"></el-table-column>
+        <el-table-column label="商协会" prop="coceralName" align="center"></el-table-column>
+        <el-table-column label="原安排展位数" prop="beforeNumber" align="center"></el-table-column>
+        <el-table-column label="异议内容" prop="objectionContent" align="center"></el-table-column>
+        <el-table-column label="处理意见" prop="disposeOpinion" align="center"></el-table-column>
+        <el-table-column label="操作" align="center">
+          <template slot-scope="scope">
+            <el-button type="text" @click="handleReturnCorcerl(scope.row, '')">返还商协会</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-row type="flex" justify="space-between" class="pagination-footer">
+        <span class="add_btn">
+          <el-button type="primary" size="medium">下载</el-button>
+        </span>
+        <el-pagination 
+          @current-change="handleCurrentChangeT"
+          :current-page="pageInfoData.currentPage"
+          :page-size="pageInfoData.pageSize"
+          layout="total, prev, pager, next, jumper"
+          :total="foreignSummaryData.total">
+        </el-pagination>
+      </el-row>
+      <!-- 返还商协会弹窗 -->
+      <el-dialog title="返还商协会" :visible.sync="passDialog" v-if="passDialog" width="30%">
+        <el-form :model="passObj" ref="returnForm" :rules="returnReasonRule">
+          <el-form-item label="处理意见：" prop="disposeOpinion">
+            <el-input v-model="passObj.disposeOpinion" type="textarea" :rows="4" maxlength="120"></el-input>
+          </el-form-item>
+          <div class="dialog-footer">
+            <el-button type="primary" size="medium" @click="handleReturnCorcerl('', 'returnForm')">保存</el-button>
+            <el-button size="medium" @click="passDialog = false;">取消</el-button>
+          </div>
+        </el-form>
+      </el-dialog>
+    </el-tab-pane>
+  </el-tabs>
+</template>
+<script>
+import { mapGetters, mapActions } from 'vuex';
+import listPageBase from "@/components/framework/mixins/listPageBase";
+export default {
+  mixins: [listPageBase],
+  data() {
+    var needInt = (rule, value, callback) => {
+      const reg = /[^\d\$]/g;
+      if (value === '') {
+        return callback(new Error('请输入>=0的整数'));
+      } else if (reg.test(value)) {
+        return callback(new Error('请输入>=0的整数'));
+      } else {
+        return callback();
+      }
+    };
+    return {
+      activeName: 'first',
+      loading: '',
+      isPublished: false,
+      passDialog: false,
+      examineResultDataList: [],
+      exhibitionAreaOpts: [],
+      dealClusterOpts: [],
+      companyOpts: [],
+      coceralOpts: [],
+      backTypeOpts: [],
+      queryForm: {
+        exhibitionArea: '',
+        exhibitionSession: '',
+        coceralId: '',
+        dealClusterId: ''
+      },
+      getBoothNumber: {
+        scheduleBoothNumber: ''
+      },
+      lastIndex: '',
+      rules: {
+        scheduleBoothNumber: [{ required: true, validator: needInt, trigger: 'blur' }]
+      },
+      publishWayArr: [],
+      publishedGoOpts: ['广交会官网', '内部管理系统', '易捷通系统'],
+      publishedForm: {
+        publishWay: []
+      },
+      publishedData: {}, // 公示传参
+      publishRules: {
+        publishWay: [{ required: true, message: '请选择至少一项发布渠道', trigger: 'change' }]
+      },
+      exhibitionAreaOptsT: [],
+      dealClusterOptsT: [],
+      coceralOptsT: [],
+      companyOptsT: [],
+      queryFormT: {
+        exhibitionArea: '',
+        dealClusterId: '',
+        coceralId: '',
+        companyCode: ''
+      },
+      returnCorcerlData: {},
+      passObj: {
+        disposeOpinion: ''
+      },
+      publicityIdData: '',
+      returnReasonRule: {
+        disposeOpinion: [{ required: true, message: '请输入', trigger: 'blur' }]
+      },
+      pageInfoData: { currentPage: 1, pageSize: 10 }
+    };
+  },
+  computed: {
+    ...mapGetters('adjustmentForeignTradeDivision', ['examineResultData', 'foreignSummaryData']),
+    formQuery() {
+      return {
+        exhibitionArea: this.queryForm.exhibitionArea,
+        exhibitionSession: this.queryForm.exhibitionSession,
+        coceralId: this.queryForm.coceralId,
+        dealClusterId: this.queryForm.dealClusterId,
+        current: this.pageInfoData.currentPage,
+        size: this.pageInfoData.pageSize
+      };
+    },
+    uploadBoothNumber() { // 在线编辑保存
+      return {
+        scheduleId: '',
+        scheduleBoothNumber: this.getBoothNumber.scheduleBoothNumber - 0
+      };
+    },
+    formQueryT() {
+      return {
+        exhibitionArea: this.queryFormT.exhibitionArea,
+        coceralId: this.queryFormT.coceralId,
+        dealClusterId: this.queryFormT.dealClusterId,
+        companyCode: this.queryFormT.companyCode,
+        current: this.pageInfoData.currentPage,
+        size: this.pageInfoData.pageSize
+      };
+    }
+  },
+  created() {
+    this.createdQuery();
+  },
+  methods: {
+    ...mapActions('adjustmentForeignTradeDivision', ['getExamineResultQuery', 'getExamineResult', 'postExamineUpdate', 'postPublicityAdd', 
+      'getForeignSummaryQuery', 'getForeignSummary', 'postReturnAssoUpdate']),
+    // 编辑数据封装
+    editData(index, row) { 
+      this.getBoothNumber.scheduleBoothNumber = row.scheduleBoothNumber ? row.scheduleBoothNumber : 0;
+      this.examineResultDataList[index]['edit'] = true;
+      this.lastIndex = index;
+    },
+    // 编辑
+    handleEdit(index, row) {
+      if (this.lastIndex === '' || index === this.lastIndex) {
+        this.editData(index, row);
+      } else if (index !== this.lastIndex) {
+        this.$confirm('是否放弃保存此次编辑？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          for (let i = 0; i < this.examineResultDataList.length; i++) {
+            this.examineResultDataList[i]['edit'] = false;
+          }
+          this.editData(index, row);
+        }).catch(() => {
+          this.$message.info('已取消此操作!');
+        });
+      }
+    },
+    // 保存
+    handleSave(index, formName, row) { // 编辑保存
+      this.$refs[formName].validate(valid => {
+        if (valid) {
+          this.loading = true;
+          this.uploadBoothNumber.scheduleId = row.scheduleId;
+          this.postExamineUpdate(this.uploadBoothNumber).then(res => {
+            this.examineResultDataList[index]['edit'] = false;
+            this.$message.success('保存成功');
+            this.createdQuery();
+          }).catch(e => {
+            this.loading = false;
+          });
+        }
+      });
+    },
+    // 打开公示弹框
+    openPublished() {
+      this.publishedData = {
+        pubilshWay: '',
+        attachment: ''
+      },
+      this.publishWayArr = [];
+      this.publishedForm.pubilshWay = [];
+      this.isPublished = true;
+    },
+    // 发布渠选择
+    handleChange(id, arr) {
+      let index = arr.indexOf(id);
+      if (index === -1) {
+        arr.push(id);
+      } else {
+        arr.splice(index, 1);
+      }
+    },
+    // 确认公布
+    submitPublish(formName) {
+      this.$refs[formName].validate(valid => {
+        if (valid) {
+          let fullScreenloading = this.$loading({ fullscreen: true });
+          this.publishedData.pubilshWay = this.publishWayArr.length > 1 ? this.publishWayArr.join(',') : this.publishWayArr[0] + '';
+          this.postPublicityAdd(this.publishedData).then(() => {
+            this.$nextTick(() => { 
+              fullScreenloading.close();
+            });
+            this.$message.success('公示成功');
+            this.isPublished = false;
+            this.createdQuery();
+          }).catch(e => {
+            this.$nextTick(() => { 
+              fullScreenloading.close();
+            });
+          });
+        }
+      });
+    },
+    // tab切换时
+    handleTabs(tab) {
+      this.handleQuery(tab.name);
+    },
+    // 返还商协会
+    handleReturnCorcerl(row, formName) {
+      if (formName === '') {
+        this.passObj.disposeOpinion = ''; 
+        this.returnCorcerlData = {
+          schemePublicity: {
+            publicityId: row.publicityId
+          },
+          schemePublicityLog: {
+            disposeOpinion: '',
+            publicityId: row.publicityId
+          }
+        };
+        this.publicityIdData = row.publicityId;
+        this.passDialog = true;
+      } else {
+        this.$refs[formName].validate(valid => {
+          if (valid) {
+            let fullScreenloading = this.$loading({ fullscreen: true });
+            this.returnCorcerlData.schemePublicityLog.disposeOpinion = this.passObj.disposeOpinion;
+            this.returnCorcerlData.schemePublicity.publicityId = this.returnCorcerlData.schemePublicityLog.publicityId = this.publicityIdData;
+            this.postReturnAssoUpdate(this.returnCorcerlData).then(() => {
+              this.$nextTick(() => { 
+                fullScreenloading.close();
+              });
+              this.$message.success('操作成功');
+              this.passDialog = false;
+              this.createdQueryT();
+            }).catch(e => {
+              this.$nextTick(() => { 
+                fullScreenloading.close();
+              });
+            });
+          }
+        });
+      }
+    },
+    // 查询
+    handleQuery(typeName) {
+      this.pageInfoData.currentPage = 1;
+      if (typeName === 'first') {
+        this.createdQuery();
+      } else if (typeName === 'second') {
+        this.createdQueryT();
+      }
+    },
+    // 操作页面
+    handleCurrentChange(val) {
+      this.pageInfoData.currentPage = val;
+      this.createdQuery();
+    },
+    handleCurrentChangeT(val) {
+      this.pageInfoData.currentPage = val;
+      this.createdQueryT();
+    },
+    // 查询封装
+    createdQuery() {
+      this.loading = true;
+      this.getExamineResultQuery().then(res => {
+        this.exhibitionAreaOpts = res.exhibitionAreaOpts;
+        this.dealClusterOpts = res.dealClusterOpts;
+        this.coceralOpts = res.coceralOpts;
+        this.getExamineResult(this.formQuery).then(data => {
+          this.loading = false;
+          let reviewInfoData = JSON.parse(JSON.stringify(data.records));
+          for (let i = 0; i < reviewInfoData.length; i++) {
+            reviewInfoData[i].edit = false;
+          }
+          this.examineResultDataList = reviewInfoData;
+          this.lastIndex = '';
+        }).catch(e => {
+          this.loading = false;
+        });
+      }).catch(e => {
+        this.loading = false;
+      });
+    },
+    createdQueryT() {
+      this.loading = true;
+      this.getForeignSummaryQuery().then(res => {
+        this.exhibitionAreaOptsT = res.exhibitionAreaOptsT;
+        this.dealClusterOptsT = res.dealClusterOptsT;
+        this.coceralOptsT = res.coceralOptsT;
+        this.companyOptsT = res.companyOptsT;
+        this.getForeignSummary(this.formQueryT).then(() => {
+          this.loading = false;
+        }).catch(e => {
+          this.loading = false;
+        });
+      }).catch(e => {
+        this.loading = false;
+      });
+    }
+  }
+};
+</script>
+<style scoped>
+.add_btn{
+  margin-left: 30px;
+}
+.pagination-footer{
+  margin-top: 20px;
+}  
+.item-Num  >>> .el-form-item__content{
+  margin-left: 0 !important;
+}
+.el-table >>> .cell{
+  overflow: visible !important;
+}
+.dialog-footer{
+  text-align: center;
+  padding-bottom: 20px;
+}
+</style>

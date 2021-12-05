@@ -1,0 +1,6 @@
+build/*.js
+config/*.js
+src/temp.vue
+src/components/framework/plugins/reportView.vue
+src/scripts/framework/prototype.js
+src/components/framework/plugins/tinyEditor.vue

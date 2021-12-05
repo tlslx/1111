@@ -1,0 +1,25 @@
+.shortclass {
+    width: 140px !important;
+    margin-right: 5px;
+}
+.inputclass {
+    width: 160px !important;
+}
+.normalclass {
+    width: 200px !important;
+}
+.bigclass {
+    width: 565px !important;
+}
+.el-table__body .el-table__row .el-button {
+    padding: 0 2px;
+}
+.m-t {
+    margin-top: 10px;
+}
+.m-b {
+    margin-bottom: 10px;
+}
+.el-page-query > .right > button{
+    height: 32px;
+}

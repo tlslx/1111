@@ -1,0 +1,12 @@
+{
+  "departmentRoleId": "test",
+  "axios": {
+    "Content-Type": "application/json;charset=UTF-8",
+    "timeout": 30000
+  },
+  "loginTheme": "loginRed",
+  "theme": "blue",
+  "language": "zh",
+  "title": "",
+  "subTitle": ""
+}
